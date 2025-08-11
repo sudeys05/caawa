@@ -89,6 +89,106 @@
   to { transform: rotate(360deg); }
 }
 
+/* Enhanced Filter Styles */
+.primary-filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.advanced-filters-toggle {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.advanced-filters-toggle:hover {
+  background: linear-gradient(135deg, #2980b9, #1abc9c);
+  transform: translateY(-1px);
+}
+
+.advanced-filters {
+  border-top: 1px solid #3a526b;
+  padding-top: 20px;
+  margin-top: 20px;
+  background: rgba(52, 73, 94, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bdc3c7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 10px 12px;
+  border: 1px solid #4a5f7a;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #34495e;
+  color: #ecf0f1;
+  transition: all 0.2s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.clear-filters-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: fit-content;
+}
+
+.clear-filters-btn:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-1px);
+}
+
 .add-geofile-btn {
   display: flex;
   align-items: center;
@@ -272,6 +372,102 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
+}
+
+/* Enhanced card badges */
+.file-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.access-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.access-badge.public {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+}
+
+.access-badge.department {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+}
+
+.access-badge.internal {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+/* Location name styling */
+.location-name {
+  color: #3498db !important;
+  font-size: 13px !important;
+  margin: 4px 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Enhanced stats display */
+.geofile-stats {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: rgba(52, 73, 94, 0.3);
+  border-radius: 6px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #95a5a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 13px;
+  color: #ecf0f1;
+  font-weight: 600;
+}
+
+/* Tags display */
+.geofile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.tag {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tag-more {
+  background: rgba(149, 165, 166, 0.3);
+  color: #bdc3c7;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .geofile-info h3 {
@@ -477,6 +673,29 @@
 .form-group textarea::placeholder {
   color: #7f8c8d !important;
   opacity: 1;
+}
+
+/* Enhanced form styles for new fields */
+.checkbox-group {
+  grid-column: 1 / -1;
+  margin: 16px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #ecf0f1 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2ecc71;
+  cursor: pointer;
 }
 
 .form-group input:focus,

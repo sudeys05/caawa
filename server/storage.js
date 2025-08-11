@@ -38,6 +38,9 @@ export class MemStorage {
     
     // Create default police vehicles
     this.createDefaultVehicles();
+    
+    // Create default geofiles
+    this.createDefaultGeofiles();
   }
 
   async createDefaultAdmin() {
@@ -202,6 +205,143 @@ export class MemStorage {
         updatedAt: new Date(),
       };
       this.policeVehicles.set(id, newVehicle);
+    }
+  }
+
+  async createDefaultGeofiles() {
+    // Create sample geofiles with comprehensive metadata
+    const sampleGeofiles = [
+      {
+        filename: 'patrol_routes_downtown.kml',
+        filepath: '/geofiles/patrol_routes_downtown.kml',
+        fileUrl: 'https://example.com/geofiles/patrol_routes_downtown.kml',
+        fileType: 'kml',
+        fileSize: 15400,
+        coordinates: JSON.stringify([-122.4194, 37.7749]),
+        boundingBox: JSON.stringify([[-122.45, 37.77], [-122.40, 37.78]]),
+        address: '100 Market Street, San Francisco, CA',
+        locationName: 'Downtown Patrol Zone',
+        description: 'Primary patrol routes for downtown district including high-traffic commercial areas and tourist zones.',
+        metadata: JSON.stringify({
+          creator: 'Officer Johnson',
+          version: '2.1',
+          lastUpdated: '2025-01-15',
+          patrolShift: 'day',
+          priority: 'high'
+        }),
+        tags: JSON.stringify(['patrol', 'downtown', 'routes', 'primary']),
+        isPublic: false,
+        accessLevel: 'department',
+        patrolArea: JSON.stringify([
+          [-122.4500, 37.7849],
+          [-122.4000, 37.7849],
+          [-122.4000, 37.7649],
+          [-122.4500, 37.7649]
+        ]),
+        incidentMarkers: JSON.stringify([
+          { type: 'theft', coordinates: [-122.4194, 37.7749], severity: 'medium' },
+          { type: 'vandalism', coordinates: [-122.4150, 37.7760], severity: 'low' }
+        ]),
+        caseId: 1,
+        uploadedBy: 1
+      },
+      {
+        filename: 'crime_hotspots_analysis.geojson',
+        filepath: '/geofiles/crime_hotspots_analysis.geojson',
+        fileType: 'geojson',
+        fileSize: 28600,
+        coordinates: JSON.stringify([-122.4094, 37.7849]),
+        boundingBox: JSON.stringify([[-122.43, 37.78], [-122.39, 37.79]]),
+        address: '500 Mission Street, San Francisco, CA',
+        locationName: 'Mission District Analysis Zone',
+        description: 'Statistical analysis of crime hotspots in the Mission District based on 6-month incident data.',
+        metadata: JSON.stringify({
+          creator: 'Crime Analytics Team',
+          period: '2024-07-01 to 2024-12-31',
+          incidents: 347,
+          methodology: 'kernel_density_estimation'
+        }),
+        tags: JSON.stringify(['analysis', 'crime', 'hotspots', 'statistics', 'mission']),
+        isPublic: true,
+        accessLevel: 'public',
+        uploadedBy: 1
+      },
+      {
+        filename: 'emergency_evacuation_routes.gpx',
+        filepath: '/geofiles/emergency_evacuation_routes.gpx',
+        fileType: 'gpx',
+        fileSize: 12300,
+        coordinates: JSON.stringify([-122.3894, 37.7594]),
+        address: '1800 3rd Street, San Francisco, CA',
+        locationName: 'Emergency Response Corridor',
+        description: 'Optimized evacuation routes for emergency scenarios including natural disasters and public safety threats.',
+        metadata: JSON.stringify({
+          creator: 'Emergency Planning Unit',
+          capacity: '50000_persons',
+          estimated_time: '45_minutes',
+          accessibility: 'ada_compliant'
+        }),
+        tags: JSON.stringify(['emergency', 'evacuation', 'routes', 'safety']),
+        isPublic: false,
+        accessLevel: 'internal',
+        uploadedBy: 1
+      },
+      {
+        filename: 'surveillance_coverage_map.shp',
+        filepath: '/geofiles/surveillance_coverage_map.shp',
+        fileType: 'shp',
+        fileSize: 45200,
+        coordinates: JSON.stringify([-122.4394, 37.7949]),
+        boundingBox: JSON.stringify([[-122.46, 37.79], [-122.41, 37.80]]),
+        address: 'Citywide Coverage',
+        locationName: 'CCTV Network Coverage',
+        description: 'Comprehensive map of surveillance camera coverage areas and blind spots throughout the district.',
+        metadata: JSON.stringify({
+          cameras: 156,
+          coverage_percentage: 78.5,
+          blind_spots: 12,
+          resolution: 'high_definition'
+        }),
+        tags: JSON.stringify(['surveillance', 'cctv', 'coverage', 'security']),
+        isPublic: false,
+        accessLevel: 'internal',
+        evidenceId: null,
+        uploadedBy: 1
+      },
+      {
+        filename: 'incident_locations_jan2025.kmz',
+        filepath: '/geofiles/incident_locations_jan2025.kmz',
+        fileType: 'kmz',
+        fileSize: 67800,
+        coordinates: JSON.stringify([-122.4194, 37.7749]),
+        address: 'Multiple locations citywide',
+        locationName: 'January 2025 Incidents',
+        description: 'Comprehensive mapping of all reported incidents during January 2025 including theft, vandalism, and traffic violations.',
+        metadata: JSON.stringify({
+          incidents: 89,
+          resolved: 67,
+          pending: 22,
+          month: 'january_2025'
+        }),
+        tags: JSON.stringify(['incidents', 'january', '2025', 'reports', 'mapping']),
+        isPublic: false,
+        accessLevel: 'department',
+        obId: null,
+        uploadedBy: 1
+      }
+    ];
+
+    for (const geofileData of sampleGeofiles) {
+      const id = this.currentGeofileId++;
+      const newGeofile = {
+        ...geofileData,
+        id,
+        lastAccessedAt: new Date('2025-01-20T10:00:00Z'),
+        downloadCount: Math.floor(Math.random() * 25), // Random download count for realism
+        createdAt: new Date('2025-01-15T10:00:00Z'),
+        updatedAt: new Date('2025-01-18T15:30:00Z'),
+      };
+      this.geofiles.set(id, newGeofile);
     }
   }
 
@@ -452,8 +592,54 @@ export class MemStorage {
   }
 
   // Geofiles methods
-  async getGeofiles() {
-    return Array.from(this.geofiles.values());
+  async getGeofiles(filters = {}) {
+    let geofiles = Array.from(this.geofiles.values());
+    
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      geofiles = geofiles.filter(geofile => 
+        geofile.filename?.toLowerCase().includes(searchLower) ||
+        geofile.description?.toLowerCase().includes(searchLower) ||
+        geofile.address?.toLowerCase().includes(searchLower) ||
+        geofile.locationName?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply file type filter
+    if (filters.fileType) {
+      geofiles = geofiles.filter(geofile => 
+        geofile.fileType?.toLowerCase() === filters.fileType.toLowerCase()
+      );
+    }
+    
+    // Apply access level filter
+    if (filters.accessLevel) {
+      geofiles = geofiles.filter(geofile => 
+        geofile.accessLevel === filters.accessLevel
+      );
+    }
+    
+    // Apply tags filter
+    if (filters.tags && filters.tags.length > 0) {
+      geofiles = geofiles.filter(geofile => {
+        if (!geofile.tags) return false;
+        const geofileTags = JSON.parse(geofile.tags || '[]');
+        return filters.tags.some(tag => geofileTags.includes(tag));
+      });
+    }
+    
+    // Apply date range filter
+    if (filters.dateFrom || filters.dateTo) {
+      geofiles = geofiles.filter(geofile => {
+        const createdAt = new Date(geofile.createdAt);
+        if (filters.dateFrom && createdAt < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && createdAt > new Date(filters.dateTo)) return false;
+        return true;
+      });
+    }
+    
+    return geofiles;
   }
 
   async getGeofile(id) {
@@ -465,7 +651,13 @@ export class MemStorage {
     const newGeofile = {
       ...geofileData,
       id,
-      uploadedBy: 1, // Default to admin user
+      uploadedBy: geofileData.uploadedBy || 1,
+      lastAccessedAt: new Date(),
+      downloadCount: 0,
+      isPublic: geofileData.isPublic || false,
+      accessLevel: geofileData.accessLevel || 'internal',
+      tags: geofileData.tags || '[]',
+      metadata: geofileData.metadata || '{}',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -484,6 +676,82 @@ export class MemStorage {
 
   async deleteGeofile(id) {
     this.geofiles.delete(id);
+  }
+
+  async updateGeofileAccess(id) {
+    const geofile = this.geofiles.get(id);
+    if (geofile) {
+      geofile.lastAccessedAt = new Date();
+      this.geofiles.set(id, geofile);
+    }
+  }
+
+  async incrementGeofileDownload(id) {
+    const geofile = this.geofiles.get(id);
+    if (geofile) {
+      geofile.downloadCount = (geofile.downloadCount || 0) + 1;
+      geofile.lastAccessedAt = new Date();
+      this.geofiles.set(id, geofile);
+    }
+  }
+
+  async searchGeofilesByLocation(lat, lng, radiusMeters = 1000) {
+    const geofiles = Array.from(this.geofiles.values());
+    return geofiles.filter(geofile => {
+      if (!geofile.coordinates) return false;
+      
+      try {
+        const coords = JSON.parse(geofile.coordinates);
+        if (!Array.isArray(coords) || coords.length < 2) return false;
+        
+        // Simple distance calculation (approximate)
+        const [fileLng, fileLat] = coords;
+        const distance = this.calculateDistance(lat, lng, fileLat, fileLng);
+        return distance <= radiusMeters;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  async linkGeofileToCase(geofileId, caseId) {
+    const geofile = this.geofiles.get(geofileId);
+    const caseItem = this.cases.get(caseId);
+    
+    if (!geofile) throw new Error('Geofile not found');
+    if (!caseItem) throw new Error('Case not found');
+    
+    geofile.caseId = caseId;
+    geofile.updatedAt = new Date();
+    this.geofiles.set(geofileId, geofile);
+  }
+
+  async addGeofileTags(geofileId, newTags) {
+    const geofile = this.geofiles.get(geofileId);
+    if (!geofile) throw new Error('Geofile not found');
+    
+    const existingTags = JSON.parse(geofile.tags || '[]');
+    const combinedTags = [...new Set([...existingTags, ...newTags])];
+    
+    geofile.tags = JSON.stringify(combinedTags);
+    geofile.updatedAt = new Date();
+    this.geofiles.set(geofileId, geofile);
+  }
+
+  // Helper method for distance calculation
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distance in meters
   }
 
   // Reports methods

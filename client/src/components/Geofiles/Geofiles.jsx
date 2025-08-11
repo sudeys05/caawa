@@ -32,12 +32,27 @@ const Geofiles = () => {
   const [selectedGeofile, setSelectedGeofile] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
-  const fileTypes = ['KML', 'GPX', 'SHP', 'GeoJSON', 'Other'];
+  const fileTypes = ['KML', 'GPX', 'SHP', 'GeoJSON', 'KMZ', 'GML', 'Other'];
+  const accessLevels = ['internal', 'department', 'public'];
+  const [tagFilter, setTagFilter] = useState('');
+  const [accessLevelFilter, setAccessLevelFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const fetchGeofiles = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/geofiles');
+      // Build query parameters for advanced filtering
+      const queryParams = new URLSearchParams();
+      if (searchTerm) queryParams.append('search', searchTerm);
+      if (typeFilter) queryParams.append('type', typeFilter);
+      if (tagFilter) queryParams.append('tags', tagFilter);
+      if (accessLevelFilter) queryParams.append('accessLevel', accessLevelFilter);
+      if (dateFromFilter) queryParams.append('dateFrom', dateFromFilter);
+      if (dateToFilter) queryParams.append('dateTo', dateToFilter);
+
+      const response = await fetch(`/api/geofiles?${queryParams.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setGeofiles(data.geofiles || []);
@@ -104,16 +119,13 @@ const Geofiles = () => {
     fetchRelatedData();
   }, []);
 
-  const filteredGeofiles = geofiles.filter(file => {
-    const matchesSearch = 
-      file.filename?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.address?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = !typeFilter || file.fileType === typeFilter;
-    
-    return matchesSearch && matchesType;
-  });
+  // Refetch when filters change
+  useEffect(() => {
+    fetchGeofiles();
+  }, [searchTerm, typeFilter, tagFilter, accessLevelFilter, dateFromFilter, dateToFilter]);
+
+  // No local filtering needed since we have server-side filtering
+  const filteredGeofiles = geofiles;
 
   const navigateToView = (view, geofile = null) => {
     setCurrentView(view);
@@ -140,13 +152,60 @@ const Geofiles = () => {
     setSelectedVehicle(vehicle);
   };
 
+  const handleDownload = async (geofileId) => {
+    try {
+      const response = await fetch(`/api/geofiles/${geofileId}/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const geofile = geofiles.find(g => g.id === geofileId);
+        if (geofile?.fileUrl || geofile?.filepath) {
+          window.open(geofile.fileUrl || geofile.filepath, '_blank');
+        }
+        // Refresh geofiles to update download count
+        fetchGeofiles();
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+    }
+  };
+
   const getFileIcon = (fileType) => {
     switch (fileType?.toLowerCase()) {
       case 'kml': return <Map size={16} className="file-kml" />;
       case 'gpx': return <MapPin size={16} className="file-gpx" />;
       case 'shp': return <FileText size={16} className="file-shp" />;
       case 'geojson': return <Map size={16} className="file-geojson" />;
+      case 'kmz': return <Map size={16} className="file-kmz" />;
+      case 'gml': return <FileText size={16} className="file-gml" />;
       default: return <FileText size={16} />;
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+    return Math.round(bytes / 1048576) + ' MB';
+  };
+
+  const getAccessLevelBadgeClass = (level) => {
+    switch (level?.toLowerCase()) {
+      case 'public': return 'access-badge public';
+      case 'department': return 'access-badge department';
+      case 'internal': return 'access-badge internal';
+      default: return 'access-badge';
+    }
+  };
+
+  const formatTags = (tagsString) => {
+    if (!tagsString) return [];
+    try {
+      return JSON.parse(tagsString);
+    } catch {
+      return [];
     }
   };
 
@@ -182,23 +241,86 @@ const Geofiles = () => {
       </div>
 
       <div className="filters-section">
-        <div className="search-box">
-          <Search size={20} />
-          <input
-            type="text"
-            placeholder="Search geofiles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="primary-filters">
+          <div className="search-box">
+            <Search size={20} />
+            <input
+              type="text"
+              placeholder="Search geofiles by name, description, address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="filter-controls">
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+              <option value="">All File Types</option>
+              {fileTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            <select value={accessLevelFilter} onChange={(e) => setAccessLevelFilter(e.target.value)}>
+              <option value="">All Access Levels</option>
+              {accessLevels.map(level => (
+                <option key={level} value={level}>
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </option>
+              ))}
+            </select>
+            <button 
+              className="advanced-filters-toggle"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            >
+              {showAdvancedFilters ? 'Hide Filters' : 'Advanced Filters'}
+            </button>
+          </div>
         </div>
-        <div className="filter-controls">
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="">All File Types</option>
-            {fileTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
+        
+        {showAdvancedFilters && (
+          <div className="advanced-filters">
+            <div className="filter-row">
+              <div className="filter-group">
+                <label>Tags:</label>
+                <input
+                  type="text"
+                  placeholder="Search by tags (comma separated)"
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>Date From:</label>
+                <input
+                  type="date"
+                  value={dateFromFilter}
+                  onChange={(e) => setDateFromFilter(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>Date To:</label>
+                <input
+                  type="date"
+                  value={dateToFilter}
+                  onChange={(e) => setDateToFilter(e.target.value)}
+                />
+              </div>
+              <div className="filter-actions">
+                <button 
+                  className="clear-filters-btn"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setTypeFilter('');
+                    setTagFilter('');
+                    setAccessLevelFilter('');
+                    setDateFromFilter('');
+                    setDateToFilter('');
+                  }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -221,10 +343,18 @@ const Geofiles = () => {
                 <div className="geofile-info">
                   <h3>{geofile.filename}</h3>
                   <p className="geofile-description">{geofile.description || 'No description'}</p>
+                  {geofile.locationName && (
+                    <p className="location-name">📍 {geofile.locationName}</p>
+                  )}
                 </div>
-                <div className="file-type">
-                  {getFileIcon(geofile.fileType)}
-                  <span>{geofile.fileType}</span>
+                <div className="file-badges">
+                  <div className="file-type">
+                    {getFileIcon(geofile.fileType)}
+                    <span>{geofile.fileType?.toUpperCase()}</span>
+                  </div>
+                  <div className={getAccessLevelBadgeClass(geofile.accessLevel)}>
+                    {geofile.accessLevel}
+                  </div>
                 </div>
               </div>
               <div className="geofile-body">
@@ -236,6 +366,26 @@ const Geofiles = () => {
                     </p>
                   )}
                 </div>
+                <div className="geofile-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">Size:</span>
+                    <span className="stat-value">{formatFileSize(geofile.fileSize)}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Downloads:</span>
+                    <span className="stat-value">{geofile.downloadCount || 0}</span>
+                  </div>
+                </div>
+                {formatTags(geofile.tags).length > 0 && (
+                  <div className="geofile-tags">
+                    {formatTags(geofile.tags).slice(0, 3).map((tag, index) => (
+                      <span key={index} className="tag">{tag}</span>
+                    ))}
+                    {formatTags(geofile.tags).length > 3 && (
+                      <span className="tag-more">+{formatTags(geofile.tags).length - 3}</span>
+                    )}
+                  </div>
+                )}
                 <div className="geofile-meta">
                   <p className="upload-date">
                     <Calendar size={14} />
@@ -260,10 +410,16 @@ const Geofiles = () => {
     const [formData, setFormData] = useState({
       filename: '',
       filepath: '',
+      fileUrl: '',
       fileType: 'KML',
+      fileSize: '',
       coordinates: '',
       address: '',
+      locationName: '',
       description: '',
+      tags: '',
+      accessLevel: 'internal',
+      isPublic: false,
       caseId: '',
       obId: '',
       evidenceId: ''
@@ -369,6 +525,30 @@ const Geofiles = () => {
             </div>
 
             <div className="form-group">
+              <label htmlFor="fileUrl">Download URL (Optional)</label>
+              <input
+                type="text"
+                id="fileUrl"
+                name="fileUrl"
+                value={formData.fileUrl}
+                onChange={handleInputChange}
+                placeholder="Enter downloadable file URL"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="fileSize">File Size (bytes)</label>
+              <input
+                type="number"
+                id="fileSize"
+                name="fileSize"
+                value={formData.fileSize}
+                onChange={handleInputChange}
+                placeholder="Enter file size in bytes"
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="address">Address</label>
               <input
                 type="text"
@@ -377,6 +557,59 @@ const Geofiles = () => {
                 value={formData.address}
                 onChange={handleInputChange}
                 placeholder="Enter location address"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="locationName">Location Name</label>
+              <input
+                type="text"
+                id="locationName"
+                name="locationName"
+                value={formData.locationName}
+                onChange={handleInputChange}
+                placeholder="Enter named location reference"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="accessLevel">Access Level *</label>
+              <select
+                id="accessLevel"
+                name="accessLevel"
+                value={formData.accessLevel}
+                onChange={handleInputChange}
+              >
+                {accessLevels.map(level => (
+                  <option key={level} value={level}>
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group checkbox-group">
+              <label htmlFor="isPublic" className="checkbox-label">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  name="isPublic"
+                  checked={formData.isPublic}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
+                />
+                <span>Make file publicly accessible</span>
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="tags">Tags (comma separated)</label>
+              <input
+                type="text"
+                id="tags"
+                name="tags"
+                value={formData.tags}
+                onChange={handleInputChange}
+                placeholder="patrol, downtown, routes, emergency"
               />
             </div>
 
@@ -497,7 +730,7 @@ const Geofiles = () => {
             Back to Geofiles
           </button>
           <div className="detail-actions">
-            <button onClick={() => window.open(selectedGeofile?.filepath, '_blank')}>
+            <button onClick={() => handleDownload(selectedGeofile?.id)}>
               <Download size={16} />
               Download
             </button>

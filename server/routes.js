@@ -434,7 +434,15 @@ export async function registerRoutes(app) {
   // Geofiles routes
   app.get('/api/geofiles', requireAuth, async (req, res) => {
     try {
-      const geofiles = await storage.getGeofiles();
+      const { search, type, tags, accessLevel, dateFrom, dateTo } = req.query;
+      const geofiles = await storage.getGeofiles({
+        search,
+        fileType: type,
+        tags: tags ? tags.split(',') : undefined,
+        accessLevel,
+        dateFrom,
+        dateTo
+      });
       res.json({ geofiles });
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch geofiles' });
@@ -447,25 +455,82 @@ export async function registerRoutes(app) {
       if (!geofile) {
         return res.status(404).json({ message: 'Geofile not found' });
       }
+      
+      // Update last accessed time for analytics
+      await storage.updateGeofileAccess(parseInt(req.params.id));
+      
       res.json(geofile);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch geofile' });
     }
   });
 
+  app.get('/api/geofiles/:id/download', requireAuth, async (req, res) => {
+    try {
+      const geofile = await storage.getGeofile(parseInt(req.params.id));
+      if (!geofile) {
+        return res.status(404).json({ message: 'Geofile not found' });
+      }
+      
+      // Increment download count
+      await storage.incrementGeofileDownload(parseInt(req.params.id));
+      
+      // Provide download information
+      res.json({ 
+        downloadUrl: geofile.fileUrl || geofile.filepath,
+        filename: geofile.filename,
+        fileType: geofile.fileType,
+        fileSize: geofile.fileSize 
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to download geofile' });
+    }
+  });
+
+  app.get('/api/geofiles/search/by-location', requireAuth, async (req, res) => {
+    try {
+      const { lat, lng, radius } = req.query;
+      if (!lat || !lng) {
+        return res.status(400).json({ message: 'Latitude and longitude required' });
+      }
+      
+      const geofiles = await storage.searchGeofilesByLocation(
+        parseFloat(lat), 
+        parseFloat(lng), 
+        parseFloat(radius) || 1000 // Default 1km radius
+      );
+      res.json({ geofiles });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to search geofiles by location' });
+    }
+  });
+
   app.post('/api/geofiles', requireAuth, async (req, res) => {
     try {
-      const geofileData = insertGeofileSchema.parse(req.body);
+      const geofileData = {
+        ...req.body,
+        uploadedBy: req.session.userId,
+        lastAccessedAt: new Date(),
+        downloadCount: 0
+      };
+      
+      // Validate file type
+      const allowedTypes = ['kml', 'gpx', 'shp', 'geojson', 'kmz', 'gml', 'other'];
+      if (!allowedTypes.includes(geofileData.fileType?.toLowerCase())) {
+        return res.status(400).json({ message: 'Invalid file type' });
+      }
+      
       const newGeofile = await storage.createGeofile(geofileData);
       res.status(201).json(newGeofile);
     } catch (error) {
+      console.error('Error creating geofile:', error);
       res.status(400).json({ message: 'Invalid geofile data' });
     }
   });
 
   app.put('/api/geofiles/:id', requireAuth, async (req, res) => {
     try {
-      const geofileData = insertGeofileSchema.parse(req.body);
+      const geofileData = req.body;
       const updatedGeofile = await storage.updateGeofile(parseInt(req.params.id), geofileData);
       res.json(updatedGeofile);
     } catch (error) {
@@ -479,6 +544,28 @@ export async function registerRoutes(app) {
       res.json({ message: 'Geofile deleted successfully' });
     } catch (error) {
       res.status(500).json({ message: 'Failed to delete geofile' });
+    }
+  });
+
+  app.post('/api/geofiles/:id/link-case/:caseId', requireAuth, async (req, res) => {
+    try {
+      const geofileId = parseInt(req.params.id);
+      const caseId = parseInt(req.params.caseId);
+      await storage.linkGeofileToCase(geofileId, caseId);
+      res.json({ message: 'Geofile linked to case successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to link geofile to case' });
+    }
+  });
+
+  app.post('/api/geofiles/:id/add-tags', requireAuth, async (req, res) => {
+    try {
+      const geofileId = parseInt(req.params.id);
+      const { tags } = req.body;
+      await storage.addGeofileTags(geofileId, tags);
+      res.json({ message: 'Tags added successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to add tags' });
     }
   });
 

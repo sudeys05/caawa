@@ -99,11 +99,23 @@ export const geofiles = pgTable("geofiles", {
   evidenceId: integer("evidence_id").references(() => evidence.id),
   filename: text("filename").notNull(),
   filepath: text("filepath").notNull(),
-  fileType: text("file_type").notNull(), // "kml", "gpx", "shp", "geojson"
+  fileUrl: text("file_url"), // URL for downloadable files
+  fileType: text("file_type").notNull(), // "kml", "gpx", "shp", "geojson", "kmz", "gml", "other"
+  fileSize: integer("file_size"), // File size in bytes
   coordinates: text("coordinates"), // JSON string of coordinates
+  boundingBox: text("bounding_box"), // JSON string for file geographic bounds
   address: text("address"),
+  locationName: text("location_name"), // Named location reference
   description: text("description"),
+  metadata: text("metadata"), // JSON string for additional file metadata
+  tags: text("tags"), // JSON array of tags for categorization
+  isPublic: boolean("is_public").default(false), // Public access flag
+  accessLevel: text("access_level").notNull().default("internal"), // "internal", "department", "public"
+  patrolArea: text("patrol_area"), // JSON string for associated patrol areas
+  incidentMarkers: text("incident_markers"), // JSON string for incident locations
   uploadedBy: integer("uploaded_by").references(() => users.id),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  downloadCount: integer("download_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
