@@ -1,2 +1,2 @@
-// Temporary redirect to JavaScript file
-import './index.js';
+// Redirect to JavaScript version
+import('./index.js');
